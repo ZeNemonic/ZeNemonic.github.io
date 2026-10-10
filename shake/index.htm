@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#121214">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg">
+<link rel="apple-touch-icon" href="icon.svg">
+<title>Shake</title>
+<style>
+  :root { --bg:#121214; --fg:#e8e6e1; --dim:#8a877f; --acc:#e0a33a; --glow:0; }
+  * { box-sizing: border-box; }
+  html, body { margin:0; height:100%; background:var(--bg); color:var(--fg);
+    font: 15px/1.3 system-ui, sans-serif; overscroll-behavior:none; }
+  body { display:flex; flex-direction:column; padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
+  header { display:grid; grid-template-columns: 1fr 1fr; gap:8px 14px; padding:12px 16px; }
+  label { display:flex; flex-direction:column; font-size:12px; color:var(--dim); gap:4px; }
+  select, button { font:inherit; color:var(--fg); background:#1e1e22; border:1px solid #333; border-radius:8px; padding:8px; }
+  button.on { background:#5a1d1d; border-color:#a33; }
+  input[type=range] { width:100%; accent-color:var(--acc); }
+  #pad { flex:1; margin:0 16px 8px; border-radius:20px; border:1px solid #333;
+    display:grid; place-items:center; touch-action:none; user-select:none; -webkit-user-select:none;
+    -webkit-touch-callout:none;
+    background: radial-gradient(circle at 50% 50%,
+      color-mix(in srgb, var(--acc) calc(var(--glow) * 70%), #1a1a1e) 0%, #16161a 70%);
+    transition: border-color .1s; }
+  #pad.held { border-color: var(--acc); }
+  #hint { color:var(--dim); font-size:18px; pointer-events:none; text-align:center; padding:0 24px; }
+  footer { padding:0 16px 12px; font-size:12px; color:var(--dim); min-height:2em; }
+</style>
+</head>
+<body>
+<header>
+  <label>Instrument
+    <select id="preset">
+      <option value="maraca">Maraca / shaker</option>
+      <option value="cabasa">Cabasa</option>
+      <option value="sekere">Shekere</option>
+      <option value="tambourine">Tambourine</option>
+      <option value="sleighbells">Sleigh bells</option>
+    </select>
+  </label>
+  <label>&nbsp;<button id="rec" type="button">● Rec</button></label>
+  <label>Sensitivity <input id="sens" type="range" min="0.25" max="3" step="0.05" value="1"></label>
+  <label>Drive <input id="drive" type="range" min="0.5" max="20" step="0.1" value="4"></label>
+  <label style="grid-column: span 2">Volume <input id="vol" type="range" min="0" max="1.5" step="0.01" value="0.8"></label>
+</header>
+<main id="pad"><div id="hint">Tap to start</div></main>
+<footer id="status">Needs HTTPS.</footer>
+<script src="app.js" type="module"></script>
+</body>
+</html>
