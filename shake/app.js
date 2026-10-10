@@ -1,16 +1,10 @@
-// handled here:
-//   sensor capture
-//   touch gate
-//   UI
-//   recording
-
 const $ = (s) => document.querySelector(s);
 const pad = $('#pad'), hint = $('#hint'), status = $('#status');
 
 let ctx = null, node = null, out = null;
 let started = false, sensorKind = null, simMode = false;
 let gate = false, touches = 0, meter = 0;
-let recording = null; // array of rows while recording
+let recording = null;
 const last = { x: 0, y: 9.81, z: 0 };
 
 function post(msg) { node && node.port.postMessage(msg); }
@@ -28,8 +22,7 @@ function setGate(on) {
   pad.classList.toggle('held', on);
 }
 
-//// sensors ////
-
+////  sensors  ////
 async function startGenericSensor() {
   if (!('Accelerometer' in window)) return false;
   try {
@@ -66,7 +59,6 @@ async function startDeviceMotion(permission) {
   return true;
 }
 
-// desktop fallback for testing with ponter
 function startPointerSim() {
   simMode = true;
   const PX_TO_M = 0.0006;
@@ -83,20 +75,18 @@ function startPointerSim() {
     }
     prev = pos && { ...pos };
     sm.x += (ax - sm.x) * 0.5; sm.y += (ay - sm.y) * 0.5;
-    feed(sm.x, sm.y + 9.81, 0); // specific force = a + (0, g, 0) when held upright
+    feed(sm.x, sm.y + 9.81, 0);
     requestAnimationFrame(tick);
   };
   requestAnimationFrame(tick);
 }
 
-//// startup ////
-
+////  startup  ////
 async function start() {
   if (started) return;
   started = true;
   hint.textContent = 'Starting…';
 
-  // Both of these must begin synchronously inside the user gesture (iOS).
   const permP = (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function')
     ? DeviceMotionEvent.requestPermission().catch(() => 'denied')
     : Promise.resolve('granted');
@@ -129,16 +119,25 @@ async function start() {
   requestAnimationFrame(draw);
 }
 
-//// touch gate ////
+////  audio unlock  ////
+function unlock() {
+  if (ctx && ctx.state !== 'running') ctx.resume().catch(() => {});
+}
+for (const ev of ['pointerup', 'touchend', 'click', 'keydown']) {
+  document.addEventListener(ev, unlock, { capture: true, passive: true });
+}
+document.addEventListener('visibilitychange', () => { if (!document.hidden) unlock(); });
+
+////  touch gate  ////
 pad.addEventListener('pointerdown', (e) => {
   e.preventDefault();
-  if (!started) { start(); return; }
+  if (!started) return;
   pad.setPointerCapture(e.pointerId);
   touches++;
   setGate(true);
 });
 const release = (e) => {
-  if (!started) return;
+  if (!started) { if (e.type === 'pointerup') start(); return; }
   touches = Math.max(0, touches - 1);
   if (touches === 0) setGate(false);
 };
@@ -146,8 +145,7 @@ pad.addEventListener('pointerup', release);
 pad.addEventListener('pointercancel', release);
 pad.addEventListener('contextmenu', (e) => e.preventDefault());
 
-//// controls ////
-
+////  controls  ////
 $('#preset').addEventListener('change', (e) => post({ type: 'preset', name: e.target.value }));
 $('#sens').addEventListener('input', (e) => post({ type: 'sens', value: +e.target.value }));
 $('#drive').addEventListener('input', (e) => post({ type: 'drive', value: +e.target.value }));
@@ -173,13 +171,15 @@ $('#rec').addEventListener('click', () => {
   setTimeout(() => URL.revokeObjectURL(a.href), 5000);
 });
 
-//// display ////
-
+////  display  ////
 function draw() {
   const glow = Math.min(1, meter * 1.5);
   pad.style.setProperty('--glow', glow.toFixed(3));
   const mag = Math.hypot(last.x, last.y, last.z);
-  status.textContent = `${sensorKind} · |f| ${mag.toFixed(1)} m/s² · ${gate ? 'GRIP' : 'muted'}${recording ? ` · rec ${recording.length}` : ''}`;
+  const audio = ctx ? ctx.state : 'none';
+  status.textContent = `audio ${audio} · ${sensorKind} · |f| ${mag.toFixed(1)} m/s² · ${gate ? 'GRIP' : 'muted'}${recording ? ` · rec ${recording.length}` : ''}`;
+  if (audio !== 'running' && !gate) hint.textContent = 'Tap once to enable audio';
+  else if (hint.textContent === 'Tap once to enable audio') hint.textContent = simMode ? 'Hold and drag to shake' : 'Hold to grip · move to shake';
   requestAnimationFrame(draw);
 }
 
