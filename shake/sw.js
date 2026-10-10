@@ -1,4 +1,4 @@
-const CACHE = 'shaker-v1';
+const CACHE = 'shaker-v2';
 const ASSETS = ['./', 'index.htm', 'app.js', 'shaker-worklet.js', 'manifest.webmanifest', 'icon.svg'];
 
 self.addEventListener('install', (e) => {
