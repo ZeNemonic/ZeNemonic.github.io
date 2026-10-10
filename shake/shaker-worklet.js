@@ -3,8 +3,6 @@
 const REF_SR = 44100;
 const V_MIN = 0.08;
 
-// res: [centerHz, poleRadius, gain]
-// box: half-width cavity in m.
 const PRESETS = {
   maraca: {
     beads: 25,
@@ -146,7 +144,7 @@ class ShakerProcessor extends AudioWorkletProcessor {
       this.tune(z);
       return z;
     });
-    // some lumped groups with diff play & bounce
+    
     this.groups = [];
     for (let i = 0; i < 4; i++) {
       const L = p.box * (0.7 + 0.6 * Math.random());
@@ -159,7 +157,6 @@ class ShakerProcessor extends AudioWorkletProcessor {
     }
   }
 
-  // two-pole reso, norm'd for unity peak (as STK BiQuad::setResonance)
   tune(z) {
     const w = (2 * Math.PI * z.freq) / sampleRate;
     z.a1 = -2 * z.r * Math.cos(w);
@@ -167,7 +164,6 @@ class ShakerProcessor extends AudioWorkletProcessor {
     z.b0 = 0.5 - 0.5 * z.a2;
   }
 
-  // impact energy integration
   mechanics(dt) {
     const p = this.p,
       S = 4,
@@ -203,7 +199,6 @@ class ShakerProcessor extends AudioWorkletProcessor {
           g.v[k] = v;
         }
       }
-      // cabasa-style:
       if (p.scrape)
         inj += p.scrape * (g.v[0] ** 2 + g.v[1] ** 2 + g.v[2] ** 2) * dt * 20;
     }
@@ -216,7 +211,6 @@ class ShakerProcessor extends AudioWorkletProcessor {
     const n = ch0.length;
     const p = this.p;
 
-    // input smoothing ~60 Hz updates, 344 Hz block rate
     for (let k = 0; k < 3; k++)
       this.f[k] += (this.fTarget[k] * this.sens - this.f[k]) * 0.35;
 
@@ -227,7 +221,6 @@ class ShakerProcessor extends AudioWorkletProcessor {
     const res = this.res;
     for (let i = 0; i < n; i++) {
       this.energy *= this.gate ? this.sysDecay : this.sysDecay * this.muteDecay;
-      // system energy → collision rate & loudness
       if (Math.random() < prob * Math.min(1, this.energy * 8)) {
         this.level += this.energy * p.gain;
         if (p.jitter && res.length > 1) {
