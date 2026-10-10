@@ -1,0 +1,1002 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Handwriting Calibration</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Spline+Sans:wght@400;500;600&family=Spline+Sans+Mono:wght@400;500&display=swap">
+<style>
+:root {
+  --paper: #edf2f0;
+  --sheet: #f8fbfa;
+  --ink: #17212a;
+  --muted: #56676c;
+  --rule: #c3d3ce;
+  --grid: #dbe7e3;
+  --accent: #2646a0;
+  --on-accent: #f8fbfa;
+  --mark: #b33d28;
+  --ok: #24724a;
+  --warn: #9a6210;
+  --bad: #b33d28;
+  --f-ui: "Spline Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-data: "Spline Sans Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #10161a; --sheet: #162027; --ink: #dde6e3; --muted: #8e9fa2; --rule: #2b3b41;
+    --grid: #1f2c32; --accent: #93acf3; --on-accent: #10161a; --mark: #ef7f63;
+    --ok: #6cc690; --warn: #e3ae58; --bad: #ef7f63; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #10161a; --sheet: #162027; --ink: #dde6e3; --muted: #8e9fa2; --rule: #2b3b41;
+  --grid: #1f2c32; --accent: #93acf3; --on-accent: #10161a; --mark: #ef7f63;
+  --ok: #6cc690; --warn: #e3ae58; --bad: #ef7f63; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--paper); color: var(--ink); font-family: var(--f-ui); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 880px; margin: 0 auto; padding-inline: 16px; padding-block: 20px 56px; display: grid; gap: 34px; }
+header.top { display: grid; gap: 10px; border-bottom: 2px solid var(--ink); padding-bottom: 12px; }
+.top-row { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: end; justify-content: space-between; }
+h1 { font-size: 28px; line-height: 1.1; margin: 0; font-weight: 600; letter-spacing: -0.015em; text-wrap: balance; }
+h2 { font-size: 19px; margin: 0; font-weight: 600; text-wrap: balance; }
+h3 { font-size: 15.5px; margin: 0; font-weight: 600; display: flex; gap: 10px; align-items: baseline; }
+.eyebrow { font-family: var(--f-data); font-size: 11px; letter-spacing: 0.09em; text-transform: uppercase; color: var(--muted); }
+p { margin: 0; max-width: 65ch; }
+.note { color: var(--muted); font-size: 13.5px; }
+.mono { font-family: var(--f-data); font-variant-numeric: tabular-nums; }
+section { display: grid; gap: 14px; min-width: 0; }
+.sec-head { display: flex; gap: 12px; align-items: baseline; border-bottom: 1px solid var(--rule); padding-bottom: 6px; }
+.num { font-family: var(--f-data); color: var(--accent); font-size: 13px; min-width: 2.4em; }
+.sub { display: grid; gap: 10px; padding-top: 6px; min-width: 0; }
+.sub .num { font-size: 12px; }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.facts { display: flex; flex-wrap: wrap; gap: 4px 14px; font-family: var(--f-data); font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.facts b { color: var(--ink); font-weight: 500; }
+label.dev { display: flex; gap: 8px; align-items: center; font-size: 13px; color: var(--muted); }
+input[type="text"] { font: inherit; font-size: 14px; color: var(--ink); background: var(--sheet); border: 1px solid var(--rule); border-radius: 5px; padding: 5px 8px; min-width: 0; width: 15em; max-width: 100%; }
+select { font: inherit; font-size: 14px; color: var(--ink); background: var(--sheet); border: 1px solid var(--rule); border-radius: 5px; padding: 6px 8px; min-height: 36px; }
+button { font: inherit; font-size: 14px; border: 1px solid var(--rule); background: var(--sheet); color: var(--ink); border-radius: 6px; padding: 7px 12px; cursor: pointer; min-height: 38px; }
+button:hover:not(:disabled) { border-color: var(--accent); }
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 500; }
+button:disabled { opacity: 0.45; cursor: not-allowed; }
+button.small { min-height: 32px; padding: 4px 10px; font-size: 13px; }
+button[aria-pressed="true"] { background: var(--ink); color: var(--sheet); border-color: var(--ink); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.state { display: inline-flex; align-items: center; gap: 6px; font-family: var(--f-data); font-size: 12px; padding: 2px 8px; border-radius: 99px; border: 1px solid currentColor; white-space: nowrap; }
+.state::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.state.ok { color: var(--ok); } .state.warn { color: var(--warn); } .state.bad { color: var(--bad); } .state.wait, .state.info { color: var(--muted); }
+.tbl { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+th, td { text-align: left; padding: 6px 12px 6px 0; border-bottom: 1px solid var(--grid); vertical-align: top; }
+th { font-weight: 500; color: var(--muted); font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.06em; }
+td.mono, .mono td { font-size: 12.5px; }
+.verdict { border-left: 3px solid var(--accent); padding: 4px 0 4px 12px; max-width: 70ch; }
+.pad { position: relative; height: 210px; border: 1px solid var(--rule); border-radius: 6px; background: var(--sheet); touch-action: none; overflow: hidden; user-select: none; -webkit-user-select: none; }
+.pad canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+.pad .hint { position: absolute; left: 10px; top: 8px; font-size: 12.5px; color: var(--muted); pointer-events: none; }
+.ruler-wrap { position: relative; height: 80px; border-block: 1px solid var(--rule); background: var(--sheet); overflow: hidden; touch-action: pan-y; }
+.ruler-wrap canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+input[type="range"] { width: 100%; accent-color: var(--accent); }
+.readout { font-family: var(--f-data); font-size: 12.5px; color: var(--muted); display: grid; gap: 2px; font-variant-numeric: tabular-nums; }
+.readout b { color: var(--ink); font-weight: 500; }
+.log { list-style: none; margin: 0; padding: 0; display: grid; }
+.log li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 12px; padding: 10px 0; border-bottom: 1px solid var(--grid); }
+.log .what { font-weight: 500; }
+.log .what .mono { color: var(--muted); font-weight: 400; font-size: 12.5px; margin-left: 6px; }
+.log .metric { grid-column: 1 / -1; font-family: var(--f-data); font-size: 12.5px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.log .meta { grid-column: 1 / -1; font-size: 12px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 4px 10px; }
+.flag { font-family: var(--f-data); font-size: 11px; color: var(--warn); border: 1px dashed currentColor; border-radius: 4px; padding: 0 5px; }
+.empty { color: var(--muted); font-size: 14px; padding: 12px 0; }
+textarea { width: 100%; height: 160px; font-family: var(--f-data); font-size: 11.5px; color: var(--ink); background: var(--sheet); border: 1px solid var(--rule); border-radius: 6px; padding: 8px; }
+.banner { border: 1px solid var(--warn); color: var(--ink); background: color-mix(in srgb, var(--warn) 10%, var(--sheet)); padding: 8px 12px; border-radius: 6px; font-size: 14px; }
+#overlay { position: fixed; inset: 0; z-index: 50; background: var(--sheet); touch-action: none; user-select: none; -webkit-user-select: none; }
+#overlay canvas { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; }
+.ov-bar { position: absolute; left: 0; right: 0; top: 0; z-index: 2; padding: calc(env(safe-area-inset-top, 0px) + 8px) 12px 8px; background: color-mix(in srgb, var(--sheet) 90%, transparent); border-bottom: 1px solid var(--rule); display: flex; gap: 6px 12px; align-items: center; flex-wrap: wrap; }
+.ov-title { font-family: var(--f-data); font-size: 12px; color: var(--accent); }
+.ov-instr { flex: 1 1 240px; font-size: 13.5px; min-width: 0; }
+.ov-instr.alert { color: var(--bad); }
+.ov-actions { display: flex; gap: 6px; }
+.ov-result { position: absolute; left: 0; right: 0; bottom: 0; z-index: 3; padding: 12px 16px calc(env(safe-area-inset-bottom, 0px) + 14px); background: var(--sheet); border-top: 2px solid var(--ink); max-height: 62%; overflow: auto; display: grid; gap: 10px; }
+.kv { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px 16px; margin: 0; }
+.kv div { min-width: 0; }
+.kv dt { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+.kv dd { margin: 0; font-family: var(--f-data); font-size: 14px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.ring { position: absolute; z-index: 1; width: 64px; height: 64px; margin: -32px 0 0 -32px; border-radius: 50%; pointer-events: none;
+  background: conic-gradient(var(--accent) calc(var(--p, 0) * 1turn), transparent 0);
+  -webkit-mask: radial-gradient(circle, transparent 26px, #000 27px); mask: radial-gradient(circle, transparent 26px, #000 27px); }
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="top-row">
+      <div>
+        <div class="eyebrow">Handwriting project · Mode 1</div>
+        <h1>Calibration</h1>
+      </div>
+      <div id="cal-pill"></div>
+    </div>
+    <div class="row">
+      <label class="dev" for="dev-label">Device <input type="text" id="dev-label" placeholder="Name this device"></label>
+    </div>
+    <div class="facts" id="facts"></div>
+  </header>
+
+  <div id="dpr-banner" class="banner" hidden></div>
+
+  <section id="s-start">
+    <div class="sec-head"><span class="num">1.1</span><h2>Start-up and environment</h2></div>
+    <p class="verdict" id="verdict">Checking what this page can reach…</p>
+    <div class="tbl"><table><thead><tr><th>Check</th><th>Result</th><th>Detail</th></tr></thead><tbody id="env-body"></tbody></table></div>
+  </section>
+
+  <section id="s-display">
+    <div class="sec-head"><span class="num">1.2</span><h2>Display calibration</h2></div>
+    <p>Lay a physical ruler on the glass. Line its zero up with the left red tick, then adjust the span until the right red tick sits exactly on <b id="tgt-label">50 mm</b>. The markings in between follow your adjustment, so check the 10 mm marks along the way too.</p>
+    <div class="ruler-wrap" id="ruler-wrap"><canvas id="ruler"></canvas></div>
+    <input type="range" id="len" aria-label="Span length in CSS pixels">
+    <div class="row">
+      <label class="dev" for="tgt">Span</label>
+      <select id="tgt"></select>
+      <button class="small" data-nudge="-1">−1 px</button>
+      <button class="small" data-nudge="-d">−1 device px</button>
+      <button class="small" data-nudge="d">+1 device px</button>
+      <button class="small" data-nudge="1">+1 px</button>
+    </div>
+    <div class="readout" id="ruler-read"></div>
+    <div class="row"><button class="primary" id="cal-save">Save calibration for this display state</button><span class="note" id="cal-msg"></span></div>
+  </section>
+
+  <section id="s-pen">
+    <div class="sec-head"><span class="num">1.3</span><h2>Pen calibration</h2></div>
+    <label class="dev" for="allow-any"><input type="checkbox" id="allow-any"> Accept finger and mouse input too (for testing the page only; such trials are labelled)</label>
+
+    <div class="sub">
+      <h3><span class="num">1.3.1–2</span>Pen detection and reported fields</h3>
+      <p class="note">Write and scribble here with the pen, tilting and twisting it as you go. Then hover the tip just above the glass without touching.</p>
+      <div class="pad" id="probe-pad"><canvas id="probe-canvas"></canvas><span class="hint" id="probe-hint">Pen here</span></div>
+      <div class="facts" id="probe-facts"></div>
+      <div class="tbl"><table><thead><tr><th>Field</th><th>Status</th><th>Observed range</th></tr></thead><tbody id="field-body"></tbody></table></div>
+      <div class="row"><button id="probe-save">Record this result</button><button id="probe-clear">Clear pad</button><span class="note" id="probe-msg"></span></div>
+    </div>
+
+    <div class="sub">
+      <h3><span class="num">1.3.3</span>Straight edge</h3>
+      <p class="note">Runs full-frame on a millimetre grid. Lay a straight edge along the dashed guide and draw one stroke against it. The fit reports two numbers: the residual from a straight line (includes any bow in the edge or glass), and the high-frequency residual after removing a 5 mm moving average, which isolates digitizer noise.</p>
+      <div class="row" id="edge-buttons"></div>
+    </div>
+
+    <div class="sub">
+      <h3><span class="num">1.3.4</span>Hold still</h3>
+      <p class="note">Rest the tip on a crosshair and hold for 3.5 s. The first 0.3 s is skipped to let contact settle. Reports jitter around the centroid, drift, and the offset between the crosshair and where the digitizer thinks the tip is, which shows parallax across the screen.</p>
+      <div class="row" id="hold-buttons"></div>
+    </div>
+  </section>
+
+  <section id="s-sensors">
+    <div class="sec-head"><span class="num">1.4</span><h2>Sensor calibration</h2></div>
+    <p class="note">Checks whether motion and orientation data reach this page. If it does, every later pen trial also records whether the device moved during the stroke.</p>
+    <div class="row"><button id="sensor-check">Check sensors</button><button id="rest-run" disabled>Run resting surface test (10 s)</button><span class="note mono" id="rest-msg"></span></div>
+    <div class="tbl"><table><thead><tr><th>Source</th><th>Result</th><th>Detail</th></tr></thead><tbody id="sensor-body"><tr><td colspan="3" class="note">Not checked yet.</td></tr></tbody></table></div>
+  </section>
+
+  <section id="s-results">
+    <div class="sec-head"><span class="num">R</span><h2>Trials</h2></div>
+    <p class="note">Every trial is kept, including mistakes. Tag anything that should be left out of analysis; summaries below count only trials tagged Keep.</p>
+    <div class="tbl" id="agg-wrap"></div>
+    <div class="row"><button id="export">Export JSON</button><button id="copy">Copy JSON</button><span class="note" id="export-msg"></span></div>
+    <textarea id="copy-box" hidden readonly aria-label="Exported JSON"></textarea>
+    <ol class="log" id="log"></ol>
+  </section>
+</div>
+
+<div id="overlay" hidden>
+  <canvas id="ov-grid"></canvas>
+  <canvas id="ov-ink"></canvas>
+  <div class="ring" id="ov-ring" hidden></div>
+  <div class="ov-bar" id="ov-bar">
+    <span class="ov-title" id="ov-title"></span>
+    <span class="ov-instr" id="ov-instr"></span>
+    <span class="ov-actions"><button class="small" id="ov-fs">Fullscreen</button><button class="small" id="ov-close">Close</button></span>
+  </div>
+  <div class="ov-result" id="ov-result" hidden></div>
+</div>
+
+<script>
+'use strict';
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+
+const MAX_SAMPLES = 5000, HOLD_MS = 3500, HOLD_SKIP = 300, HOLD_END = 3300, HF_HALF_MM = 2.5;
+const TAGS = [['ok', 'Keep'], ['practice', 'Practice'], ['slip', 'Slip'], ['instrument', 'Instrument'], ['interrupted', 'Interrupted'], ['other', 'Other']];
+const FIELDS = [
+  { f: 'pressure', c: 'p', d: null },
+  { f: 'tangentialPressure', c: 'tp', d: 0 },
+  { f: 'tiltX', c: 'tx', d: 0 }, { f: 'tiltY', c: 'ty', d: 0 }, { f: 'twist', c: 'tw', d: 0 },
+  { f: 'width', c: 'w', d: 1 }, { f: 'height', c: 'h', d: 1 },
+  { f: 'altitudeAngle', c: 'al', d: Math.PI / 2 }, { f: 'azimuthAngle', c: 'az', d: 0 },
+];
+const ANGLES = [0, 45, 90, 135];
+const TARGETS = [
+  { id: 'C', name: 'Centre', fx: 0.5, fy: 0.6 },
+  { id: 'TL', name: 'Top left', fx: 0.14, fy: 0.32 },
+  { id: 'TR', name: 'Top right', fx: 0.86, fy: 0.32 },
+  { id: 'BL', name: 'Bottom left', fx: 0.14, fy: 0.86 },
+  { id: 'BR', name: 'Bottom right', fx: 0.86, fy: 0.86 },
+];
+const SPANS = [20, 30, 50, 80, 100, 120, 150];
+
+const sum = a => a.reduce((s, v) => s + v, 0);
+const mean = a => a.length ? sum(a) / a.length : NaN;
+const std = a => { if (a.length < 2) return NaN; const m = mean(a); return Math.sqrt(mean(a.map(v => (v - m) ** 2))); };
+const rms = a => a.length ? Math.sqrt(mean(a.map(v => v * v))) : NaN;
+function quantile(a, q) { if (!a.length) return NaN; const s = [...a].sort((x, y) => x - y); const i = (s.length - 1) * q, lo = Math.floor(i), hi = Math.ceil(i); return s[lo] + (s[hi] - s[lo]) * (i - lo); }
+const median = a => quantile(a, 0.5);
+const fmt = (n, d = 2) => Number.isFinite(n) ? n.toFixed(d) : '—';
+const round = (v, d) => v == null ? null : Math.round(v * 10 ** d) / 10 ** d;
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const isInt = v => Math.abs(v - Math.round(v)) < 1e-3;
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+function fnv(str) { let h = 0x811c9dc5; for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; } return h.toString(36); }
+function lsGet(k) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : null; } catch { return null; } }
+function lsSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch { return false; } }
+function lsWorks() { try { localStorage.setItem('hwcal:probe', '1'); const ok = localStorage.getItem('hwcal:probe') === '1'; localStorage.removeItem('hwcal:probe'); return ok; } catch { return false; } }
+const token = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+const newId = kind => kind + '-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+
+const S = {
+  dpr: devicePixelRatio, scr: null, deviceKey: '', device: null, cal: null, calReason: '',
+  db: null, dl: null, storesReady: false, lsOK: lsWorks(), dbErr: null,
+  trials: [], allowAny: false, hz: NaN, sensors: null,
+  motion: { live: null, buf: [] },
+  probe: null, run: null, guessMmPerPx: 0.15875,
+};
+
+function readDisplay() {
+  S.dpr = devicePixelRatio;
+  const a = screen.width, b = screen.height;
+  S.scr = { w: Math.min(a, b), h: Math.max(a, b) };
+}
+const calKey = () => `${S.dpr}@${S.scr.w}x${S.scr.h}`;
+function identity() {
+  const ident = [navigator.userAgent, navigator.platform || '', navigator.maxTouchPoints || 0, navigator.hardwareConcurrency || 0, navigator.deviceMemory || 0].join('|');
+  S.deviceKey = 'd' + fnv(ident);
+  S.guessMmPerPx = (navigator.maxTouchPoints > 0 || matchMedia('(pointer: coarse)').matches) ? 25.4 / 160 : 25.4 / 96;
+}
+
+function blankDevice() { return { key: S.deviceKey, label: '', ua: navigator.userAgent, calibrations: {}, created: new Date().toISOString() }; }
+async function saveDevice() {
+  S.device.updated = new Date().toISOString();
+  lsSet('hwcal:dev:' + S.deviceKey, S.device);
+  if (S.db) { try { await S.db.doc('devices/' + S.deviceKey).set(S.device); return 'shared store'; } catch (e) { S.dbErr = e.code || 'error'; } }
+  return S.lsOK ? 'this browser' : 'nowhere (storage blocked)';
+}
+function localTrialsKey() { return 'hwcal:trials:' + S.deviceKey; }
+function storeLocalTrials() {
+  const keep = S.trials.slice(-200).map(t => t.where && t.where.includes('db') ? { ...t, cols: null, consts: null, rawInDb: true } : t);
+  if (!lsSet(localTrialsKey(), keep)) lsSet(localTrialsKey(), keep.map(t => ({ ...t, cols: null, consts: null, rawDropped: true })));
+}
+async function saveTrial(doc) {
+  doc.where = [];
+  if (S.db) {
+    let body = doc;
+    if (JSON.stringify(body).length > 240000) { body = { ...doc, cols: { t: doc.cols.t, x: doc.cols.x, y: doc.cols.y, p: doc.cols.p || null } }; body.flags = [...(doc.flags || []), 'raw-trimmed']; }
+    try { await S.db.doc('trials/' + doc.id).set({ ...body, where: ['db'] }); doc.where.push('db'); }
+    catch (e) { S.dbErr = e.code || 'error'; }
+  }
+  if (S.lsOK) doc.where.push('local');
+  S.trials.push(doc);
+  storeLocalTrials();
+  return doc.where;
+}
+async function setTag(id, tag) {
+  const t = S.trials.find(x => x.id === id); if (!t) return;
+  t.tag = tag; storeLocalTrials();
+  if (S.db && t.where && t.where.includes('db')) { try { await S.db.doc('trials/' + id).update({ tag }); } catch (e) { S.dbErr = e.code || 'error'; } }
+  renderResults();
+}
+function loadLocal() {
+  S.device = lsGet('hwcal:dev:' + S.deviceKey) || null;
+  S.trials = lsGet(localTrialsKey()) || [];
+}
+async function initStores() {
+  const c = window.claude;
+  if (c && typeof c.use === 'function') {
+    const [db, dl] = await Promise.all([c.use('db').catch(() => null), c.use('downloads').catch(() => null)]);
+    S.db = db; S.dl = dl;
+  }
+  S.storesReady = true;
+  if (!S.db) return;
+  try {
+    const snap = await S.db.doc('devices/' + S.deviceKey).get();
+    if (snap.exists) {
+      const remote = structuredClone(snap.data());
+      const local = S.device;
+      S.device = remote;
+      if (local) { S.device.calibrations = { ...local.calibrations, ...remote.calibrations }; S.device.label = remote.label || local.label; }
+    }
+  } catch (e) { S.dbErr = e.code || 'error'; }
+  try {
+    const q = await S.db.collection('trials').where('device', '==', S.deviceKey).get();
+    const byId = new Map(S.trials.map(t => [t.id, t]));
+    for (const d of q.docs) byId.set(d.id, structuredClone(d.data()));
+    S.trials = [...byId.values()].sort((a, b) => a.at < b.at ? -1 : 1);
+  } catch (e) { S.dbErr = e.code || 'error'; }
+}
+
+function evaluateCal() {
+  readDisplay();
+  const cals = S.device ? S.device.calibrations || {} : {};
+  S.cal = cals[calKey()] || null;
+  if (S.cal) { S.calReason = ''; return; }
+  const prev = Object.values(cals).sort((a, b) => a.at < b.at ? 1 : -1)[0];
+  if (!prev) S.calReason = 'No calibration saved for this device yet.';
+  else if (prev.dpr !== S.dpr) S.calReason = `devicePixelRatio changed from ${prev.dpr} to ${S.dpr} since the last calibration.`;
+  else S.calReason = `Screen size changed from ${prev.screen.w}×${prev.screen.h} to ${S.scr.w}×${S.scr.h} CSS px.`;
+}
+const mmPerPx = () => S.cal ? S.cal.mmPerPx : S.guessMmPerPx;
+
+function renderHeader() {
+  const pill = $('#cal-pill');
+  pill.innerHTML = S.cal
+    ? `<span class="state ok">Calibrated · ${fmt(S.cal.mmPerPx, 5)} mm/px</span>`
+    : `<span class="state warn">Needs display calibration</span>`;
+  $('#facts').innerHTML = [
+    ['devicePixelRatio', S.dpr], ['screen', `${S.scr.w}×${S.scr.h} CSS px`],
+    ['refresh', Number.isFinite(S.hz) ? `${fmt(S.hz, 0)} Hz` : '…'], ['device key', S.deviceKey],
+  ].map(([k, v]) => `<span>${k} <b>${esc(v)}</b></span>`).join('');
+  const lab = $('#dev-label'); if (document.activeElement !== lab) lab.value = S.device ? S.device.label || '' : '';
+  const b = $('#dpr-banner');
+  if (!S.cal && S.device && Object.keys(S.device.calibrations || {}).length) { b.hidden = false; b.textContent = 'Recalibrate the display before running pen tests: ' + S.calReason; }
+  else b.hidden = true;
+}
+
+function envRows() {
+  const P = S.probe, pp = 'PointerEvent' in window;
+  const yes = (v, okText = 'yes', noText = 'no', bad = 'bad') => [v ? okText : noText, v ? 'ok' : bad];
+  const rows = [];
+  rows.push(['Saved state for this device', ...(S.device ? ['found', 'ok'] : ['none yet', 'wait']), S.device ? `${Object.keys(S.device.calibrations || {}).length} display state(s) calibrated` : 'Created when you save a calibration.']);
+  rows.push(['Calibration for current display', ...(S.cal ? ['valid', 'ok'] : ['missing', 'warn']), S.cal ? `${calKey()} · saved ${new Date(S.cal.at).toLocaleString()}` : S.calReason]);
+  rows.push(['Shared store (db)', ...(!S.storesReady ? ['checking', 'wait'] : S.db ? (S.dbErr ? ['error', 'bad'] : ['available', 'ok']) : ['unavailable', 'warn']), S.dbErr ? `Last error: ${S.dbErr}` : S.db ? 'Trials sync across devices, and Claude can read them back.' : 'Only reachable when the page is opened as a claude.ai artifact.']);
+  rows.push(['Browser storage', ...yes(S.lsOK, 'works', 'blocked', 'warn'), 'Per-browser copy of calibration and trial summaries.']);
+  rows.push(['File export', ...(!S.storesReady ? ['checking', 'wait'] : S.dl ? ['available', 'ok'] : ['unavailable', 'warn']), S.dl ? 'Saves JSON after you confirm.' : 'Use Copy JSON instead.']);
+  rows.push(['Pointer Events', ...yes(pp), '']);
+  rows.push(['Coalesced samples', ...yes(pp && 'getCoalescedEvents' in PointerEvent.prototype, 'yes', 'no', 'warn'), 'Full digitizer rate rather than one sample per frame.']);
+  rows.push(['Predicted samples', ...yes(pp && 'getPredictedEvents' in PointerEvent.prototype, 'yes', 'no', 'info'), 'Not recorded; listed for reference.']);
+  rows.push(['Pen contact', ...(P && P.types.pen ? ['seen', 'ok'] : ['not yet', 'wait']), P && P.types.pen ? `${P.types.pen} pen samples` : 'Use the pad in 1.3.1.']);
+  rows.push(['Pen hover', ...(P && P.hover ? ['reported', 'ok'] : P && P.types.pen ? ['not seen', 'warn'] : ['not yet', 'wait']), P && P.hover ? `${P.hover} hover samples` : 'Hold the tip just above the glass on the pad.']);
+  const s = S.sensors;
+  rows.push(['Motion sensors', ...(!s ? ['not checked', 'wait'] : S.motion.live ? ['streaming', 'ok'] : ['not reachable', 'bad']), !s ? 'Run 1.4.' : S.motion.live ? `Source: ${S.motion.live}` : 'No readings reached this page.']);
+  rows.push(['Fullscreen', ...yes(!!document.fullscreenEnabled, 'allowed', 'not allowed', 'info'), 'Optional; tests fill the frame either way.']);
+  rows.push(['Screen wake lock', ...yes('wakeLock' in navigator, 'present', 'absent', 'info'), 'Keeps the screen on during long tests.']);
+  let framed = false; try { framed = window.top !== window; } catch { framed = true; }
+  rows.push(['Running in a frame', framed ? 'yes' : 'no', 'info', framed ? 'Size and coordinates are the frame’s, which is fine for mm measurements.' : '']);
+  return rows;
+}
+function renderEnv() {
+  $('#env-body').innerHTML = envRows().map(([k, v, st, d]) => `<tr><td>${esc(k)}</td><td><span class="state ${st}">${esc(v)}</span></td><td class="note">${esc(d)}</td></tr>`).join('');
+  const P = S.probe;
+  const coalesced = 'PointerEvent' in window && 'getCoalescedEvents' in PointerEvent.prototype;
+  const storage = S.db || S.lsOK;
+  const gaps = [];
+  if (!storage) gaps.push('nothing can be saved');
+  if (!coalesced) gaps.push('pen samples arrive only once per frame');
+  if (S.sensors && !S.motion.live) gaps.push('motion sensors are not reachable, so surface movement has to be logged by hand or captured by a native app');
+  let text;
+  if (!S.storesReady) text = 'Checking what this page can reach…';
+  else if (!gaps.length && P && P.types.pen) text = `Everything checked so far works inside this artifact${S.sensors ? '' : '. Motion sensors are still unchecked (1.4)'}.`;
+  else if (!gaps.length) text = 'Storage and pointer capture work here. Touch the pad in 1.3.1 with the pen to confirm pen input' + (S.sensors ? '.' : ', and run 1.4 for sensors.');
+  else text = 'Limits found: ' + gaps.join('; ') + '.';
+  $('#verdict').textContent = text;
+}
+
+const R2 = { target: 50, len: 0 };
+function rulerSetup(initial) {
+  const wrap = $('#ruler-wrap');
+  const avail = wrap.clientWidth - 28;
+  const sel = $('#tgt');
+  if (initial) {
+    sel.innerHTML = SPANS.map(s => `<option value="${s}">${s} mm</option>`).join('');
+    if (S.cal) { R2.target = S.cal.targetMm; R2.len = S.cal.lenPx; }
+    else {
+      const fits = SPANS.filter(s => s / S.guessMmPerPx <= avail);
+      R2.target = fits.length ? fits[fits.length - 1] : SPANS[0];
+      R2.len = R2.target / S.guessMmPerPx;
+    }
+    sel.value = String(R2.target);
+  }
+  const guess = R2.target / (S.cal ? S.cal.mmPerPx : S.guessMmPerPx);
+  const r = $('#len');
+  r.min = String(guess * 0.6); r.max = String(Math.max(guess * 1.6, R2.len)); r.step = String(1 / S.dpr); r.value = String(R2.len);
+  drawRuler();
+}
+function drawRuler() {
+  const wrap = $('#ruler-wrap'), c = $('#ruler'), dpr = S.dpr;
+  const W = wrap.clientWidth, H = wrap.clientHeight;
+  c.width = Math.round(W * dpr); c.height = Math.round(H * dpr);
+  const g = c.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, W, H);
+  const x0 = 14, pxmm = R2.len / R2.target, ink = token('--ink'), mark = token('--mark'), muted = token('--muted');
+  g.font = `10px ${token('--f-data')}`; g.textAlign = 'center'; g.textBaseline = 'top';
+  for (let mm = 0; mm <= R2.target; mm++) {
+    const x = x0 + mm * pxmm;
+    const end = mm === 0 || mm === R2.target;
+    const h = end ? H : mm % 10 === 0 ? 32 : mm % 5 === 0 ? 22 : 12;
+    g.strokeStyle = end ? mark : ink; g.lineWidth = end ? 1.5 : 1 / dpr * Math.max(1, Math.round(dpr * 0.6));
+    g.beginPath(); g.moveTo(x, 0); g.lineTo(x, h); g.stroke();
+    if (mm % 10 === 0 && !end) { g.fillStyle = muted; g.fillText(String(mm), x, 36); }
+  }
+  g.fillStyle = mark; g.textAlign = 'left'; g.fillText('0', x0 + 4, H - 16);
+  g.textAlign = 'right'; g.fillText(`${R2.target} mm`, x0 + R2.len - 4, H - 16);
+  const over = x0 + R2.len > W;
+  const mpp = R2.target / R2.len;
+  $('#tgt-label').textContent = `${R2.target} mm`;
+  $('#ruler-read').innerHTML = [
+    `Span <b>${fmt(R2.len, 3)} CSS px</b> = <b>${fmt(R2.len * S.dpr, 1)} device px</b>${over ? ' · <span style="color:var(--bad)">wider than this frame; choose a shorter span</span>' : ''}`,
+    `1 mm = <b>${fmt(1 / mpp, 3)} CSS px</b> = ${fmt(S.dpr / mpp, 2)} device px · ${fmt(mpp, 5)} mm per CSS px`,
+    `Implied panel density ≈ <b>${fmt(S.dpr / mpp * 25.4, 0)} ppi</b> (${fmt(mpp / S.dpr * 1000, 1)} µm per device px)`,
+    S.cal ? `Saved for this display state: ${fmt(S.cal.mmPerPx, 5)} mm/px over a ${S.cal.targetMm} mm span` : 'Not saved for this display state yet.',
+  ].map(l => `<div>${l}</div>`).join('');
+}
+async function saveCal() {
+  if (!S.device) S.device = blankDevice();
+  S.device.label = $('#dev-label').value.trim();
+  const cal = { mmPerPx: R2.target / R2.len, targetMm: R2.target, lenPx: R2.len, dpr: S.dpr, screen: { ...S.scr }, at: new Date().toISOString() };
+  S.device.calibrations = { ...(S.device.calibrations || {}), [calKey()]: cal };
+  $('#cal-msg').textContent = 'Saving…';
+  const where = await saveDevice();
+  evaluateCal(); renderAll();
+  $('#cal-msg').textContent = `Saved to ${where}.`;
+}
+
+function newProbe() {
+  const fields = {}; for (const F of FIELDS) fields[F.f] = { seen: false, min: Infinity, max: -Infinity, vals: new Set() };
+  return { types: {}, fields, hover: 0, contact: 0, events: 0, coalescedMax: 0, dts: [], lastT: null, last: null };
+}
+let probeRaf = 0;
+function probeSample(e, buttons) {
+  const P = S.probe, type = e.pointerType || 'unknown';
+  P.types[type] = (P.types[type] || 0) + 1;
+  const contact = (buttons ?? e.buttons) > 0;
+  const accept = type === 'pen' || S.allowAny;
+  if (type === 'pen' && !contact) P.hover++;
+  if (accept) {
+    for (const F of FIELDS) {
+      const v = e[F.f];
+      if (v === undefined || v === null) continue;
+      if (F.f === 'pressure' && !contact) continue;
+      const st = P.fields[F.f]; st.seen = true; st.min = Math.min(st.min, v); st.max = Math.max(st.max, v);
+      if (st.vals.size < 64) st.vals.add(Math.round(v * 1e4) / 1e4);
+    }
+  }
+  if (contact) {
+    P.contact++;
+    if (accept && P.lastT != null && e.timeStamp > P.lastT) P.dts.push(e.timeStamp - P.lastT);
+    P.lastT = e.timeStamp;
+    const pad = $('#probe-pad'), rect = pad.getBoundingClientRect();
+    const x = e.clientX - rect.left, y = e.clientY - rect.top;
+    const g = $('#probe-canvas').getContext('2d');
+    g.strokeStyle = type === 'pen' ? token('--ink') : token('--muted');
+    g.lineWidth = 0.6 + 2.2 * (e.pressure || 0.5); g.lineCap = 'round';
+    if (P.last) { g.beginPath(); g.moveTo(P.last.x, P.last.y); g.lineTo(x, y); g.stroke(); }
+    P.last = { x, y };
+  }
+  if (!probeRaf) probeRaf = requestAnimationFrame(() => { probeRaf = 0; renderProbe(); renderEnv(); });
+}
+function fieldVerdict(F, st) {
+  if (!st.seen) return ['absent', 'bad'];
+  if (st.vals.size > 1) return ['reports values', 'ok'];
+  const v = [...st.vals][0];
+  if (F.d != null && Math.abs(v - F.d) < 1e-4) return ['default only', 'warn'];
+  return ['constant', 'warn'];
+}
+function renderProbe() {
+  const P = S.probe;
+  $('#field-body').innerHTML = FIELDS.map(F => {
+    const st = P.fields[F.f]; const [v, cls] = P.contact || P.hover ? fieldVerdict(F, st) : ['waiting', 'wait'];
+    const range = st.seen ? `${fmt(st.min, 3)} … ${fmt(st.max, 3)}${st.vals.size >= 64 ? ' (64+ values)' : ` (${st.vals.size} value${st.vals.size === 1 ? '' : 's'})`}` : '—';
+    return `<tr><td class="mono">${F.f}</td><td><span class="state ${cls}">${v}</span></td><td class="mono">${range}</td></tr>`;
+  }).join('');
+  const types = Object.entries(P.types).map(([k, v]) => `${k} ${v}`).join(' · ') || 'none yet';
+  $('#probe-facts').innerHTML = [
+    ['pointerType', types], ['hover samples', P.hover], ['max coalesced per event', P.coalescedMax],
+    ['contact sample rate', P.dts.length > 5 ? `${fmt(1000 / median(P.dts), 0)} Hz` : '—'],
+  ].map(([k, v]) => `<span>${k} <b>${esc(v)}</b></span>`).join('');
+  $('#probe-hint').hidden = P.contact + P.hover > 0;
+}
+function sizeCanvas(c, host) { c.width = Math.round(host.clientWidth * S.dpr); c.height = Math.round(host.clientHeight * S.dpr); c.getContext('2d').setTransform(S.dpr, 0, 0, S.dpr, 0, 0); }
+function setupProbe() {
+  const pad = $('#probe-pad');
+  S.probe = newProbe(); sizeCanvas($('#probe-canvas'), pad);
+  pad.addEventListener('pointerdown', e => { e.preventDefault(); S.probe.last = null; S.probe.lastT = null; try { pad.setPointerCapture(e.pointerId); } catch {} probeSample(e, 1); });
+  pad.addEventListener('pointermove', e => {
+    const list = e.getCoalescedEvents ? e.getCoalescedEvents() : [];
+    S.probe.events++; S.probe.coalescedMax = Math.max(S.probe.coalescedMax, list.length);
+    for (const ce of (list.length ? list : [e])) probeSample(ce, e.buttons);
+  });
+  const up = () => { S.probe.last = null; S.probe.lastT = null; };
+  pad.addEventListener('pointerup', up); pad.addEventListener('pointercancel', up);
+  pad.addEventListener('contextmenu', e => e.preventDefault());
+  $('#probe-clear').addEventListener('click', () => { S.probe = newProbe(); sizeCanvas($('#probe-canvas'), pad); renderProbe(); renderEnv(); $('#probe-msg').textContent = ''; });
+  $('#probe-save').addEventListener('click', async () => {
+    const P = S.probe;
+    if (!P.contact && !P.hover) { $('#probe-msg').textContent = 'Use the pad first.'; return; }
+    const fields = {}; for (const F of FIELDS) { const st = P.fields[F.f]; fields[F.f] = { verdict: fieldVerdict(F, st)[0], min: st.seen ? st.min : null, max: st.seen ? st.max : null, distinct: st.vals.size }; }
+    const doc = baseDoc('probe', {});
+    doc.summary = { types: { ...P.types }, hover: P.hover, contact: P.contact, coalescedMax: P.coalescedMax, hz: P.dts.length > 5 ? 1000 / median(P.dts) : null, fields };
+    const where = await saveTrial(doc);
+    $('#probe-msg').textContent = where.length ? `Recorded (${where.join(' + ')}).` : 'Kept for this visit only; no storage reachable.';
+    renderResults();
+  });
+  renderProbe();
+}
+
+function baseDoc(kind, params) {
+  return {
+    v: 1, id: newId(kind), kind, at: new Date().toISOString(), device: S.deviceKey, tag: 'ok', flags: [], params,
+    cal: S.cal ? { mmPerPx: S.cal.mmPerPx, dpr: S.dpr, screen: { ...S.scr }, at: S.cal.at } : { mmPerPx: null, dpr: S.dpr, screen: { ...S.scr }, at: null },
+    hz: Number.isFinite(S.hz) ? round(S.hz, 1) : null, anyInput: S.allowAny,
+  };
+}
+function compactColumns(R) {
+  const t0 = R.t[0];
+  const cols = { t: R.t.map(v => round(v - t0, 3)) }, consts = {};
+  for (const key of ['x', 'y', ...FIELDS.map(F => F.c)]) {
+    const a = R[key];
+    if (a.every(v => v == null)) { consts[key] = null; continue; }
+    if (a.every(v => v === a[0])) { consts[key] = a[0]; continue; }
+    cols[key] = a.map(v => round(v, 4));
+  }
+  return { cols, consts, t0 };
+}
+
+function samplingStats(t) {
+  const dts = []; let dup = 0;
+  for (let i = 1; i < t.length; i++) { const d = t[i] - t[i - 1]; if (d > 0) dts.push(d); else dup++; }
+  const med = median(dts);
+  return { hz: 1000 / med, dtMed: med, dtP95: quantile(dts, 0.95), gaps: dts.filter(d => d > 3 * med).length, dup };
+}
+function quantStats(xs, ys, dpr, k) {
+  let css = 0, dev = 0, minStep = Infinity;
+  for (let i = 0; i < xs.length; i++) {
+    if (isInt(xs[i]) && isInt(ys[i])) css++;
+    if (isInt(xs[i] * dpr) && isInt(ys[i] * dpr)) dev++;
+    if (i) for (const d of [Math.abs(xs[i] - xs[i - 1]), Math.abs(ys[i] - ys[i - 1])]) if (d > 1e-6 && d < minStep) minStep = d;
+  }
+  const n = xs.length || 1;
+  const grid = css / n > 0.95 ? 'CSS px' : dev / n > 0.95 ? 'device px' : 'sub-pixel';
+  return { grid, fracCss: css / n, fracDev: dev / n, minStepMm: Number.isFinite(minStep) ? minStep * k : null };
+}
+function pressureStats(p) { const a = p.filter(v => v != null); return a.length ? { mean: mean(a), std: std(a), min: Math.min(...a), max: Math.max(...a) } : null; }
+function fitLine(xs, ys) {
+  const cx = mean(xs), cy = mean(ys); let sxx = 0, syy = 0, sxy = 0;
+  for (let i = 0; i < xs.length; i++) { const dx = xs[i] - cx, dy = ys[i] - cy; sxx += dx * dx; syy += dy * dy; sxy += dx * dy; }
+  const th = 0.5 * Math.atan2(2 * sxy, sxx - syy);
+  return { cx, cy, ux: Math.cos(th), uy: Math.sin(th) };
+}
+function analyzeEdge(R, k, dpr) {
+  const n = R.x.length, flags = [];
+  if (n < 5) return { n, flags: ['empty'] };
+  const xs = R.x.map(v => v * k), ys = R.y.map(v => v * k);
+  const L = fitLine(xs, ys);
+  const s = [], d = [];
+  for (let i = 0; i < n; i++) { const dx = xs[i] - L.cx, dy = ys[i] - L.cy; s.push(dx * L.ux + dy * L.uy); d.push(-dx * L.uy + dy * L.ux); }
+  const order = s.map((_, i) => i).sort((a, b) => s[a] - s[b]);
+  const ss = order.map(i => s[i]), dd = order.map(i => d[i]);
+  const pre = [0]; for (const v of dd) pre.push(pre[pre.length - 1] + v);
+  const hf = []; let lo = 0, hi = 0;
+  for (let i = 0; i < ss.length; i++) {
+    while (ss[lo] < ss[i] - HF_HALF_MM) lo++;
+    while (hi < ss.length && ss[hi] <= ss[i] + HF_HALF_MM) hi++;
+    hf.push(dd[i] - (pre[hi] - pre[lo]) / (hi - lo));
+  }
+  let ang = Math.atan2(-L.uy, L.ux) * 180 / Math.PI; ang = ((ang % 180) + 180) % 180;
+  const length = ss[ss.length - 1] - ss[0], dur = R.t[n - 1] - R.t[0];
+  const samp = samplingStats(R.t);
+  if (length < 20) flags.push('short');
+  if (samp.gaps) flags.push('gaps');
+  if (R.palm) flags.push('palm');
+  if (R.capped) flags.push('capped');
+  if (R.cancelled) flags.push('cancelled');
+  return {
+    n, angleFit: ang, lengthMm: length, durationMs: dur, speedMmS: length / (dur / 1000),
+    lineRms: rms(d), lineMax: Math.max(...d.map(Math.abs)), hfRms: rms(hf), hfMax: Math.max(...hf.map(Math.abs)),
+    ...samp, ...quantStats(R.x, R.y, dpr, k), pressure: pressureStats(R.p), palm: R.palm, coalescedMax: R.coalescedMax, flags,
+  };
+}
+function analyzeHold(R, k, dpr, target) {
+  const n = R.x.length, flags = [];
+  if (n < 1) return { n, flags: ['empty'] };
+  const t0 = R.t[0];
+  const idx = R.t.map((t, i) => i).filter(i => R.t[i] - t0 >= HOLD_SKIP && R.t[i] - t0 <= HOLD_END);
+  if (R.lifted) flags.push('lifted early');
+  if (R.palm) flags.push('palm');
+  if (R.cancelled) flags.push('cancelled');
+  const all = { cx: R.x[n - 1] * k, cy: R.y[n - 1] * k };
+  if (idx.length < 2) {
+    const last = idx.length ? idx[0] : n - 1;
+    const cx = R.x[last] * k, cy = R.y[last] * k;
+    flags.push('no movement events');
+    return { n, nWin: idx.length, rateHz: idx.length / ((HOLD_END - HOLD_SKIP) / 1000), rms: 0, max: 0, sdx: 0, sdy: 0, drift: 0,
+      offX: cx - target.x * k, offY: cy - target.y * k, offMag: Math.hypot(cx - target.x * k, cy - target.y * k), pressure: pressureStats(R.p), ...quantStats(R.x, R.y, dpr, k), palm: R.palm, flags };
+  }
+  const xs = idx.map(i => R.x[i] * k), ys = idx.map(i => R.y[i] * k), ts = idx.map(i => (R.t[i] - t0) / 1000);
+  const cx = mean(xs), cy = mean(ys);
+  const r = xs.map((x, i) => Math.hypot(x - cx, ys[i] - cy));
+  const slope = (a) => { const mt = mean(ts), ma = mean(a); let num = 0, den = 0; for (let i = 0; i < a.length; i++) { num += (ts[i] - mt) * (a[i] - ma); den += (ts[i] - mt) ** 2; } return den ? num / den : 0; };
+  const drift = Math.hypot(slope(xs), slope(ys));
+  const offX = cx - target.x * k, offY = cy - target.y * k;
+  return {
+    n, nWin: idx.length, rateHz: idx.length / ((HOLD_END - HOLD_SKIP) / 1000), rms: rms(r), max: Math.max(...r), sdx: std(xs), sdy: std(ys), drift,
+    offX, offY, offMag: Math.hypot(offX, offY), pressure: pressureStats(idx.map(i => R.p[i])), ...quantStats(idx.map(i => R.x[i]), idx.map(i => R.y[i]), dpr, k), palm: R.palm, flags,
+  };
+}
+
+function pushMotion(ax, ay, az, ra, rb, rg) {
+  const b = S.motion.buf; b.push({ t: performance.now(), ax, ay, az, ra, rb, rg });
+  if (b.length > 4000) b.splice(0, b.length - 3000);
+}
+function startMotion(kind) {
+  if (S.motion.live) return;
+  if (kind === 'devicemotion') {
+    addEventListener('devicemotion', e => { const a = e.accelerationIncludingGravity || {}, r = e.rotationRate || {}; pushMotion(a.x, a.y, a.z, r.alpha, r.beta, r.gamma); });
+  } else {
+    try {
+      const acc = new Accelerometer({ frequency: 60 }); let gy = null;
+      try { gy = new Gyroscope({ frequency: 60 }); gy.start(); } catch { gy = null; }
+      const deg = 180 / Math.PI;
+      acc.addEventListener('reading', () => pushMotion(acc.x, acc.y, acc.z, gy ? gy.z * deg : null, gy ? gy.x * deg : null, gy ? gy.y * deg : null));
+      acc.start();
+    } catch { return; }
+  }
+  S.motion.live = kind;
+}
+function motionSummary(t0, t1) {
+  if (!S.motion.live) return null;
+  const w = S.motion.buf.filter(m => m.t >= t0 && m.t <= t1);
+  if (!w.length) return { n: 0 };
+  const mag = w.map(m => Math.hypot(m.ax || 0, m.ay || 0, m.az || 0));
+  const rot = w.flatMap(m => [m.ra, m.rb, m.rg].filter(v => v != null).map(Math.abs));
+  const accelStd = std(mag), rotMax = rot.length ? Math.max(...rot) : null;
+  return { n: w.length, accelStd, rotMax, moved: accelStd > 0.15 || (rotMax != null && rotMax > 5) };
+}
+
+async function probeSensors() {
+  const out = { at: new Date().toISOString(), policy: {}, permission: null,
+    devicemotion: { present: 'DeviceMotionEvent' in window, events: 0, data: 0, interval: null },
+    deviceorientation: { present: 'DeviceOrientationEvent' in window, events: 0, data: 0 }, generic: {} };
+  const pp = document.permissionsPolicy || document.featurePolicy;
+  for (const f of ['accelerometer', 'gyroscope', 'magnetometer']) { try { out.policy[f] = pp && pp.allowsFeature ? pp.allowsFeature(f) : null; } catch { out.policy[f] = null; } }
+  if (window.DeviceMotionEvent && typeof DeviceMotionEvent.requestPermission === 'function') { try { out.permission = await DeviceMotionEvent.requestPermission(); } catch (e) { out.permission = 'error: ' + e.name; } }
+  const onM = e => { out.devicemotion.events++; const a = e.accelerationIncludingGravity; if (a && a.x != null) out.devicemotion.data++; out.devicemotion.interval = e.interval; };
+  const onO = e => { out.deviceorientation.events++; if (e.alpha != null || e.beta != null) out.deviceorientation.data++; };
+  addEventListener('devicemotion', onM); addEventListener('deviceorientation', onO);
+  const sensors = [];
+  for (const name of ['Accelerometer', 'Gyroscope', 'Magnetometer', 'LinearAccelerationSensor', 'AbsoluteOrientationSensor']) {
+    const g = out.generic[name] = { present: name in window, readings: 0, status: name in window ? 'starting' : 'absent' };
+    if (!g.present) continue;
+    try {
+      const s = new window[name]({ frequency: 60 });
+      s.addEventListener('reading', () => { g.readings++; g.status = 'reading'; });
+      s.addEventListener('error', ev => { g.status = (ev.error && ev.error.name) || 'error'; });
+      s.start(); sensors.push(s);
+    } catch (e) { g.status = e.name || 'error'; }
+  }
+  await sleep(2500);
+  removeEventListener('devicemotion', onM); removeEventListener('deviceorientation', onO);
+  for (const s of sensors) { try { s.stop(); } catch {} }
+  for (const g of Object.values(out.generic)) if (g.status === 'starting') g.status = g.readings ? 'reading' : 'no readings';
+  if (out.devicemotion.data) startMotion('devicemotion');
+  else if (out.generic.Accelerometer && out.generic.Accelerometer.readings) startMotion('generic');
+  return out;
+}
+function renderSensors() {
+  const o = S.sensors; if (!o) return;
+  const pol = v => v === null ? 'unknown' : v ? 'allowed' : 'blocked';
+  const rows = [
+    ['devicemotion', o.devicemotion.present ? (o.devicemotion.data ? 'readings' : o.devicemotion.events ? 'events, no data' : 'no events') : 'absent', o.devicemotion.data ? 'ok' : 'bad', o.devicemotion.data ? `${o.devicemotion.data} events in 2.5 s · interval ${o.devicemotion.interval} ms` : 'Accelerometer and gyroscope via the event API.'],
+    ['deviceorientation', o.deviceorientation.present ? (o.deviceorientation.data ? 'readings' : 'no data') : 'absent', o.deviceorientation.data ? 'ok' : 'bad', `${o.deviceorientation.events} events`],
+    ...Object.entries(o.generic).map(([k, g]) => [k, g.status, g.status === 'reading' ? 'ok' : g.present ? 'bad' : 'info', g.present ? `${g.readings} readings` : 'Generic Sensor API not in this browser.']),
+    ['Permissions policy', ['accelerometer', 'gyroscope', 'magnetometer'].map(f => `${f}: ${pol(o.policy[f])}`).join(' · '), 'info', 'What the embedding frame allows.'],
+  ];
+  if (o.permission) rows.push(['Motion permission', o.permission, o.permission === 'granted' ? 'ok' : 'bad', '']);
+  $('#sensor-body').innerHTML = rows.map(([k, v, st, d]) => `<tr><td class="mono">${esc(k)}</td><td><span class="state ${st}">${esc(v)}</span></td><td class="note">${esc(d)}</td></tr>`).join('');
+  $('#rest-run').disabled = !S.motion.live;
+  $('#rest-msg').textContent = S.motion.live ? '' : 'Resting test needs a live sensor.';
+}
+async function restTest() {
+  const btn = $('#rest-run'); btn.disabled = true;
+  const t0 = performance.now();
+  for (let i = 10; i > 0; i--) { $('#rest-msg').textContent = `Leave the device alone… ${i}`; await sleep(1000); }
+  const t1 = performance.now();
+  const w = S.motion.buf.filter(m => m.t >= t0 && m.t <= t1);
+  const ax = ['ax', 'ay', 'az', 'ra', 'rb', 'rg'];
+  const per = {}; for (const a of ax) { const v = w.map(m => m[a]).filter(x => x != null); per[a] = { mean: mean(v), std: std(v) }; }
+  const mag = w.map(m => Math.hypot(m.ax || 0, m.ay || 0, m.az || 0));
+  const doc = baseDoc('rest', { seconds: 10 });
+  doc.summary = { n: w.length, rateHz: w.length / ((t1 - t0) / 1000), per, accelMagStd: std(mag), rotStd: mean(['ra', 'rb', 'rg'].map(a => per[a].std).filter(Number.isFinite)) };
+  const where = await saveTrial(doc);
+  $('#rest-msg').textContent = `Done: ${w.length} readings, accel σ ${fmt(doc.summary.accelMagStd, 4)} m/s². Saved (${where.join(' + ') || 'this visit only'}).`;
+  btn.disabled = false; renderResults();
+}
+
+const OV = { el: null, grid: null, ink: null, W: 0, H: 0, top: 0 };
+let wakeLock = null;
+function ovSize() {
+  OV.W = innerWidth; OV.H = innerHeight;
+  for (const c of [OV.grid, OV.ink]) { c.width = Math.round(OV.W * S.dpr); c.height = Math.round(OV.H * S.dpr); c.getContext('2d').setTransform(S.dpr, 0, 0, S.dpr, 0, 0); }
+  OV.top = $('#ov-bar').getBoundingClientRect().bottom;
+}
+function drawGrid() {
+  const g = OV.grid.getContext('2d'), W = OV.W, H = OV.H, k = mmPerPx(), pxmm = 1 / k;
+  g.clearRect(0, 0, W, H);
+  const minorStep = pxmm * S.dpr >= 5 ? 1 : 5;
+  const gridC = token('--grid'), ruleC = token('--rule');
+  for (let mm = 0; mm * pxmm <= Math.max(W, H); mm += minorStep) {
+    const p = mm * pxmm; g.strokeStyle = mm % 10 === 0 ? ruleC : gridC; g.lineWidth = mm % 10 === 0 ? 1 : 0.5;
+    if (p <= W) { g.beginPath(); g.moveTo(p, 0); g.lineTo(p, H); g.stroke(); }
+    if (p <= H) { g.beginPath(); g.moveTo(0, p); g.lineTo(W, p); g.stroke(); }
+  }
+  const run = S.run; if (!run) return;
+  g.strokeStyle = token('--mark'); g.lineWidth = 1.5;
+  if (run.kind === 'edge') {
+    const a = run.list[run.i] * Math.PI / 180, cx = W / 2, cy = OV.top + (H - OV.top) / 2, L = Math.hypot(W, H);
+    g.setLineDash([8, 6]); g.beginPath(); g.moveTo(cx - Math.cos(a) * L, cy + Math.sin(a) * L); g.lineTo(cx + Math.cos(a) * L, cy - Math.sin(a) * L); g.stroke(); g.setLineDash([]);
+  } else {
+    const p = targetPos(run.list[run.i]), r = 3 * pxmm;
+    g.beginPath(); g.arc(p.x, p.y, r, 0, Math.PI * 2); g.stroke();
+    g.beginPath(); g.moveTo(p.x - 2.2 * r, p.y); g.lineTo(p.x + 2.2 * r, p.y); g.moveTo(p.x, p.y - 2.2 * r); g.lineTo(p.x, p.y + 2.2 * r); g.stroke();
+    const ring = $('#ov-ring'); ring.style.left = p.x + 'px'; ring.style.top = p.y + 'px';
+  }
+}
+function targetPos(T) { return { x: OV.W * T.fx, y: OV.top + (OV.H - OV.top) * (T.fy - 0.2) / 0.8 }; }
+function setInstr(text, alert) { const el = $('#ov-instr'); el.textContent = text; el.classList.toggle('alert', !!alert); }
+function newRec() { const R = { t: [], x: [], y: [], palm: 0, coalescedMax: 0, events: 0, types: {}, capped: false, lifted: false, cancelled: false, pid: null, last: null }; for (const F of FIELDS) R[F.c] = []; return R; }
+function openRun(kind, list, i = 0) {
+  if (!S.cal && !S.allowAny) return;
+  S.run = { kind, list, i, phase: 'ready', R: newRec(), timer: 0, raf: 0, t0perf: 0, doc: null };
+  const ov = $('#overlay'); ov.hidden = false; $('#ov-result').hidden = true; $('#ov-ring').hidden = kind !== 'hold';
+  $('#ov-ring').style.setProperty('--p', 0);
+  $('#ov-fs').hidden = !document.fullscreenEnabled;
+  document.documentElement.style.overflow = 'hidden';
+  if ('wakeLock' in navigator && !wakeLock) navigator.wakeLock.request('screen').then(l => { wakeLock = l; }).catch(() => {});
+  armRun();
+}
+function armRun() {
+  const run = S.run;
+  run.phase = 'ready'; run.R = newRec(); run.doc = null;
+  $('#ov-result').hidden = true;
+  if (run.kind === 'edge') {
+    const a = run.list[run.i];
+    $('#ov-title').textContent = `1.3.3 · ${a}°${run.list.length > 1 ? ` · ${run.i + 1}/${run.list.length}` : ''}`;
+    setInstr('Lay the straight edge along the dashed guide. Draw one stroke against it, then lift.');
+  } else {
+    const T = run.list[run.i];
+    $('#ov-title').textContent = `1.3.4 · ${T.name}${run.list.length > 1 ? ` · ${run.i + 1}/${run.list.length}` : ''}`;
+    setInstr('Put the tip on the centre of the crosshair and hold it still until the ring fills.');
+    $('#ov-ring').style.setProperty('--p', 0);
+  }
+  requestAnimationFrame(() => { ovSize(); drawGrid(); });
+}
+function closeRun() {
+  const run = S.run;
+  if (run && run.phase === 'rec') { run.R.cancelled = true; finishRun(); }
+  clearTimeout(run && run.timer); cancelAnimationFrame(run && run.raf);
+  S.run = null; $('#overlay').hidden = true; document.documentElement.style.overflow = '';
+  if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+  if (wakeLock) { wakeLock.release().catch(() => {}); wakeLock = null; }
+  renderResults();
+}
+function acceptType(t) { return t === 'pen' || S.allowAny; }
+function recPush(R, e) {
+  if (R.t.length >= MAX_SAMPLES) { R.capped = true; return; }
+  R.t.push(e.timeStamp); R.x.push(e.clientX); R.y.push(e.clientY);
+  for (const F of FIELDS) { const v = e[F.f]; R[F.c].push(v === undefined ? null : v); }
+  const g = OV.ink.getContext('2d');
+  if (R.last) {
+    g.strokeStyle = token('--ink'); g.lineCap = 'round'; g.lineWidth = 0.8 + 1.6 * (e.pressure || 0.5);
+    g.beginPath(); g.moveTo(R.last.x, R.last.y); g.lineTo(e.clientX, e.clientY); g.stroke();
+  } else { g.fillStyle = token('--ink'); g.beginPath(); g.arc(e.clientX, e.clientY, 1.2, 0, Math.PI * 2); g.fill(); }
+  R.last = { x: e.clientX, y: e.clientY };
+}
+function onOvDown(e) {
+  const run = S.run; if (!run) return; e.preventDefault();
+  const R = run.R;
+  if (run.phase === 'rec') { if (e.pointerType === 'touch' && e.pointerId !== R.pid) R.palm++; return; }
+  if (run.phase !== 'ready') return;
+  if (!acceptType(e.pointerType)) { setInstr(`That was ${e.pointerType} input. Use the pen.`, true); return; }
+  run.phase = 'rec'; R.pid = e.pointerId; R.type = e.pointerType; run.t0perf = performance.now();
+  OV.ink.getContext('2d').clearRect(0, 0, OV.W, OV.H);
+  try { OV.ink.setPointerCapture(e.pointerId); } catch {}
+  recPush(R, e);
+  if (run.kind === 'hold') {
+    setInstr('Hold still…');
+    const start = performance.now();
+    const tick = () => { if (!S.run || S.run.phase !== 'rec') return; $('#ov-ring').style.setProperty('--p', Math.min(1, (performance.now() - start) / HOLD_MS)); run.raf = requestAnimationFrame(tick); };
+    run.raf = requestAnimationFrame(tick);
+    run.timer = setTimeout(() => { if (S.run === run && run.phase === 'rec') finishRun(); }, HOLD_MS);
+  } else setInstr('Recording… lift to finish.');
+}
+function onOvMove(e) {
+  const run = S.run; if (!run || run.phase !== 'rec' || e.pointerId !== run.R.pid) return;
+  const list = e.getCoalescedEvents ? e.getCoalescedEvents() : [];
+  run.R.events++; run.R.coalescedMax = Math.max(run.R.coalescedMax, list.length);
+  for (const ce of (list.length ? list : [e])) recPush(run.R, ce);
+  if (run.R.capped) finishRun();
+}
+function onOvUp(e) {
+  const run = S.run; if (!run || run.phase !== 'rec' || e.pointerId !== run.R.pid) return;
+  if (e.type === 'pointercancel') run.R.cancelled = true;
+  if (run.kind === 'hold') run.R.lifted = true;
+  finishRun();
+}
+async function finishRun() {
+  const run = S.run; if (!run || run.phase !== 'rec') return;
+  run.phase = 'done'; clearTimeout(run.timer); cancelAnimationFrame(run.raf);
+  const R = run.R, k = mmPerPx(), t1perf = performance.now();
+  let summary, params;
+  if (run.kind === 'edge') { params = { angle: run.list[run.i] }; summary = analyzeEdge(R, k, S.dpr); }
+  else { const T = run.list[run.i], p = targetPos(T); params = { target: T.id, x: p.x, y: p.y }; summary = analyzeHold(R, k, S.dpr, p); }
+  const doc = baseDoc(run.kind, params);
+  doc.inputType = R.type; doc.frame = { w: OV.W, h: OV.H };
+  doc.motion = motionSummary(run.t0perf - 50, t1perf + 50);
+  if (doc.motion && doc.motion.moved) summary.flags.push('device moved');
+  if (R.type !== 'pen') summary.flags.push('not pen');
+  if (!S.cal) summary.flags.push('uncalibrated');
+  doc.flags = summary.flags; delete summary.flags; doc.summary = summary;
+  if (R.t.length) { const c = compactColumns(R); doc.cols = c.cols; doc.consts = c.consts; doc.t0 = c.t0; }
+  if (R.cancelled || (run.kind === 'hold' && R.lifted)) doc.tag = 'interrupted';
+  run.doc = doc;
+  renderRunResult('Saving…');
+  const where = await saveTrial(doc);
+  if (S.run === run) renderRunResult(where.length ? `Saved (${where.join(' + ')})` : 'Kept for this visit only; no storage reachable');
+}
+function metricsFor(t) {
+  const s = t.summary || {};
+  if (t.kind === 'edge') return [
+    ['HF residual', `${fmt(s.hfRms, 4)} mm RMS`], ['Line residual', `${fmt(s.lineRms, 4)} mm RMS`], ['Max deviation', `${fmt(s.lineMax, 3)} mm`],
+    ['Sample rate', `${fmt(s.hz, 0)} Hz`], ['Coordinate grid', s.grid || '—'], ['Smallest step', `${fmt(s.minStepMm, 4)} mm`],
+    ['Length', `${fmt(s.lengthMm, 1)} mm`], ['Speed', `${fmt(s.speedMmS, 0)} mm/s`], ['Fitted angle', `${fmt(s.angleFit, 2)}°`],
+    ['Pressure', s.pressure ? `${fmt(s.pressure.mean, 3)} ± ${fmt(s.pressure.std, 3)}` : '—'], ['Samples', `${s.n ?? 0} · gaps ${s.gaps ?? 0}`],
+  ];
+  if (t.kind === 'hold') return [
+    ['Jitter', `${fmt(s.rms, 4)} mm RMS`], ['Max excursion', `${fmt(s.max, 4)} mm`], ['σx / σy', `${fmt(s.sdx, 4)} / ${fmt(s.sdy, 4)} mm`],
+    ['Drift', `${fmt(s.drift, 4)} mm/s`], ['Offset from crosshair', `${fmt(s.offMag, 3)} mm`], ['Offset x / y', `${fmt(s.offX, 3)} / ${fmt(s.offY, 3)} mm`],
+    ['Events while still', `${s.nWin ?? 0} (${fmt(s.rateHz, 0)}/s)`], ['Coordinate grid', s.grid || '—'],
+    ['Pressure', s.pressure ? `${fmt(s.pressure.mean, 3)} ± ${fmt(s.pressure.std, 4)}` : '—'],
+  ];
+  if (t.kind === 'probe') return [
+    ['Fields reporting', Object.entries(s.fields || {}).filter(([, f]) => f.verdict === 'reports values').map(([k]) => k).join(', ') || 'none'],
+    ['Hover', s.hover ? 'yes' : 'no'], ['Sample rate', `${fmt(s.hz, 0)} Hz`], ['Max coalesced', s.coalescedMax],
+  ];
+  if (t.kind === 'rest') return [['Accel σ', `${fmt(s.accelMagStd, 4)} m/s²`], ['Rotation σ', `${fmt(s.rotStd, 3)} °/s`], ['Readings', `${s.n} (${fmt(s.rateHz, 0)} Hz)`]];
+  return [];
+}
+function tagButtons(t) { return TAGS.map(([v, l]) => `<button class="small" data-tag="${v}" data-id="${t.id}" aria-pressed="${t.tag === v}">${l}</button>`).join(''); }
+function renderRunResult(status) {
+  const run = S.run, t = run.doc, box = $('#ov-result');
+  const hasNext = run.i < run.list.length - 1;
+  box.innerHTML = `
+    <div class="row" style="justify-content:space-between"><strong>${run.kind === 'edge' ? 'Straight edge' : 'Hold still'} result</strong><span class="note">${esc(status)}</span></div>
+    <dl class="kv">${metricsFor(t).map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl>
+    ${t.flags.length ? `<div class="row">${t.flags.map(f => `<span class="flag">${esc(f)}</span>`).join('')}</div>` : ''}
+    ${t.motion ? `<div class="note mono">Device motion during trial: accel σ ${fmt(t.motion.accelStd, 3)} m/s² · max rotation ${fmt(t.motion.rotMax, 2)} °/s</div>` : ''}
+    <div class="row" role="group" aria-label="Tag this trial">${tagButtons(t)}</div>
+    <div class="row"><button id="ov-again">Again</button>${hasNext ? `<button class="primary" id="ov-next">Next</button>` : ''}<button id="ov-done">Close</button></div>`;
+  box.hidden = false;
+  $('#ov-again').onclick = () => armRun();
+  if (hasNext) $('#ov-next').onclick = () => { run.i++; armRun(); };
+  $('#ov-done').onclick = closeRun;
+  $$('[data-tag]', box).forEach(b => b.onclick = async () => { await setTag(b.dataset.id, b.dataset.tag); $$('[data-tag]', box).forEach(x => x.setAttribute('aria-pressed', String(x.dataset.tag === b.dataset.tag))); });
+}
+
+const KIND = { edge: 'Straight edge', hold: 'Hold still', probe: 'Pen probe', rest: 'Resting surface' };
+function paramText(t) { return t.kind === 'edge' ? `${t.params.angle}°` : t.kind === 'hold' ? t.params.target : t.kind === 'rest' ? `${t.params.seconds} s` : ''; }
+function headline(t) {
+  const s = t.summary || {};
+  if (t.kind === 'edge') return `noise ${fmt(s.hfRms, 4)} mm · line ${fmt(s.lineRms, 4)} mm · ${fmt(s.hz, 0)} Hz · ${s.grid || '—'}`;
+  if (t.kind === 'hold') return `jitter ${fmt(s.rms, 4)} mm · offset ${fmt(s.offMag, 3)} mm · drift ${fmt(s.drift, 4)} mm/s · ${s.nWin ?? 0} events`;
+  if (t.kind === 'probe') return metricsFor(t)[0][1] + ` · hover ${s.hover ? 'yes' : 'no'} · ${fmt(s.hz, 0)} Hz`;
+  if (t.kind === 'rest') return `accel σ ${fmt(s.accelMagStd, 4)} m/s² · rotation σ ${fmt(s.rotStd, 3)} °/s`;
+  return '';
+}
+function renderAgg() {
+  const ok = S.trials.filter(t => t.tag === 'ok' && (t.kind === 'edge' || t.kind === 'hold'));
+  if (!ok.length) { $('#agg-wrap').innerHTML = ''; return; }
+  const groups = {};
+  for (const t of ok) { const k = String(t.cal.dpr); (groups[k] = groups[k] || []).push(t); }
+  const rows = Object.entries(groups).sort((a, b) => +a[0] - +b[0]).map(([dpr, ts]) => {
+    const e = ts.filter(t => t.kind === 'edge').map(t => t.summary), h = ts.filter(t => t.kind === 'hold').map(t => t.summary);
+    const grids = [...new Set(e.concat(h).map(s => s.grid).filter(Boolean))].join(', ');
+    return `<tr><td>${dpr}</td><td>${e.length} / ${h.length}</td><td>${fmt(median(e.map(s => s.hfRms).filter(Number.isFinite)), 4)}</td><td>${fmt(median(e.map(s => s.lineRms).filter(Number.isFinite)), 4)}</td><td>${fmt(median(e.map(s => s.hz).filter(Number.isFinite)), 0)}</td><td>${fmt(median(h.map(s => s.rms).filter(Number.isFinite)), 4)}</td><td>${fmt(median(h.map(s => s.offMag).filter(Number.isFinite)), 3)}</td><td>${esc(grids || '—')}</td></tr>`;
+  }).join('');
+  $('#agg-wrap').innerHTML = `<table class="mono"><thead><tr><th>dpr</th><th>edge / hold</th><th>HF noise mm</th><th>line mm</th><th>Hz</th><th>hold jitter mm</th><th>offset mm</th><th>grid</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+function renderResults() {
+  renderAgg();
+  const list = [...S.trials].sort((a, b) => a.at < b.at ? 1 : -1).slice(0, 150);
+  if (!list.length) { $('#log').innerHTML = '<li class="empty">No trials yet. Record the pen probe in 1.3.1, or run 1.3.3 or 1.3.4.</li>'; return; }
+  $('#log').innerHTML = list.map(t => `<li>
+    <div class="what">${KIND[t.kind] || t.kind}<span class="mono">${esc(paramText(t))}</span></div>
+    <select data-tagsel="${t.id}" aria-label="Tag">${TAGS.map(([v, l]) => `<option value="${v}"${t.tag === v ? ' selected' : ''}>${l}</option>`).join('')}</select>
+    <div class="metric">${esc(headline(t))}</div>
+    <div class="meta"><span>${new Date(t.at).toLocaleString()}</span><span>dpr ${t.cal.dpr}</span>${t.inputType && t.inputType !== 'pen' ? `<span class="flag">${esc(t.inputType)}</span>` : ''}${(t.flags || []).map(f => `<span class="flag">${esc(f)}</span>`).join('')}${t.where && !t.where.includes('db') ? '<span>this browser only</span>' : ''}</div>
+  </li>`).join('');
+  $$('[data-tagsel]').forEach(s => s.onchange = () => setTag(s.dataset.tagsel, s.value));
+}
+function exportPayload() {
+  return JSON.stringify({ exportedAt: new Date().toISOString(), device: S.device, display: { dpr: S.dpr, screen: S.scr, refreshHz: S.hz }, environment: envRows().map(([k, v, , d]) => ({ check: k, result: v, detail: d })), sensors: S.sensors, trials: S.trials }, null, 1);
+}
+
+function renderButtons() {
+  const blocked = !S.cal && !S.allowAny;
+  $('#edge-buttons').innerHTML = `<button class="primary" data-edge="all"${blocked ? ' disabled' : ''}>Run all four angles</button>` + ANGLES.map(a => `<button data-edge="${a}"${blocked ? ' disabled' : ''}>${a}°</button>`).join('') + (blocked ? '<span class="note">Calibrate the display first (1.2).</span>' : '');
+  $('#hold-buttons').innerHTML = `<button class="primary" data-hold="all"${blocked ? ' disabled' : ''}>Run all five targets</button>` + TARGETS.map(T => `<button data-hold="${T.id}"${blocked ? ' disabled' : ''}>${T.name}</button>`).join('') + (blocked ? '<span class="note">Calibrate the display first (1.2).</span>' : '');
+  $$('[data-edge]').forEach(b => b.onclick = () => openRun('edge', b.dataset.edge === 'all' ? ANGLES : [+b.dataset.edge]));
+  $$('[data-hold]').forEach(b => b.onclick = () => openRun('hold', b.dataset.hold === 'all' ? TARGETS : TARGETS.filter(T => T.id === b.dataset.hold)));
+}
+function renderAll() { renderHeader(); renderEnv(); renderButtons(); drawRuler(); renderResults(); }
+function onDisplayChange() {
+  const before = calKey(); evaluateCal();
+  if (calKey() !== before) rulerSetup(true);
+  sizeCanvas($('#probe-canvas'), $('#probe-pad'));
+  renderAll();
+  if (S.run) { ovSize(); drawGrid(); }
+}
+function watchDpr() {
+  const mq = matchMedia(`(resolution: ${devicePixelRatio}dppx)`);
+  mq.addEventListener('change', () => { onDisplayChange(); watchDpr(); }, { once: true });
+}
+function measureRefresh() {
+  const ts = []; const step = t => { ts.push(t); if (ts.length < 90) requestAnimationFrame(step); else { const d = []; for (let i = 1; i < ts.length; i++) d.push(ts[i] - ts[i - 1]); S.hz = 1000 / median(d); renderHeader(); } };
+  requestAnimationFrame(step);
+}
+
+function boot() {
+  identity(); readDisplay(); loadLocal(); evaluateCal();
+  OV.grid = $('#ov-grid'); OV.ink = $('#ov-ink');
+  rulerSetup(true); setupProbe(); renderAll(); measureRefresh(); watchDpr();
+  let rt = 0; addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(onDisplayChange, 200); });
+
+  $('#len').addEventListener('input', e => { R2.len = +e.target.value; drawRuler(); });
+  $('#tgt').addEventListener('change', e => { const old = R2.target; R2.target = +e.target.value; R2.len = R2.len * R2.target / old; rulerSetup(false); });
+  $$('[data-nudge]').forEach(b => b.addEventListener('click', () => { const v = b.dataset.nudge; const d = v === 'd' ? 1 / S.dpr : v === '-d' ? -1 / S.dpr : +v; R2.len = Math.max(10, R2.len + d); rulerSetup(false); }));
+  $('#cal-save').addEventListener('click', saveCal);
+  $('#dev-label').addEventListener('change', async () => { if (!S.device) S.device = blankDevice(); S.device.label = $('#dev-label').value.trim(); await saveDevice(); renderEnv(); });
+  $('#allow-any').addEventListener('change', e => { S.allowAny = e.target.checked; renderButtons(); });
+
+  $('#sensor-check').addEventListener('click', async () => {
+    const b = $('#sensor-check'); b.disabled = true; b.textContent = 'Listening for 2.5 s…';
+    S.sensors = await probeSensors(); b.disabled = false; b.textContent = 'Check sensors again';
+    renderSensors(); renderEnv();
+  });
+  $('#rest-run').addEventListener('click', restTest);
+
+  const ink = $('#ov-ink');
+  ink.addEventListener('pointerdown', onOvDown);
+  ink.addEventListener('pointermove', onOvMove);
+  ink.addEventListener('pointerup', onOvUp);
+  ink.addEventListener('pointercancel', onOvUp);
+  $('#overlay').addEventListener('contextmenu', e => e.preventDefault());
+  $('#overlay').addEventListener('touchmove', e => e.preventDefault(), { passive: false });
+  $('#ov-close').addEventListener('click', closeRun);
+  $('#ov-fs').addEventListener('click', () => { const p = document.documentElement.requestFullscreen && document.documentElement.requestFullscreen(); if (p) p.catch(() => {}); });
+  document.addEventListener('fullscreenchange', () => { if (S.run) setTimeout(() => { ovSize(); drawGrid(); }, 100); });
+
+  $('#export').addEventListener('click', async () => {
+    const msg = $('#export-msg');
+    if (!S.dl) { msg.textContent = 'File export is not available here. Use Copy JSON.'; return; }
+    try { await S.dl.save({ filename: `handwriting-calibration-${S.deviceKey}-${new Date().toISOString().slice(0, 10)}.json`, data: exportPayload() }); msg.textContent = 'Saved.'; }
+    catch (e) { msg.textContent = e && e.code === 'declined' ? 'Export cancelled.' : `Export failed (${(e && e.code) || 'error'}). Use Copy JSON.`; }
+  });
+  $('#copy').addEventListener('click', () => {
+    const text = exportPayload(), box = $('#copy-box'), msg = $('#export-msg');
+    const fallback = () => { box.hidden = false; box.value = text; box.focus(); box.select(); msg.textContent = 'Clipboard refused; the JSON is selected below.'; };
+    try { navigator.clipboard.writeText(text).then(() => { msg.textContent = `Copied ${S.trials.length} trial(s).`; }, fallback); } catch { fallback(); }
+  });
+
+  initStores().then(() => { evaluateCal(); if (S.cal) rulerSetup(true); renderAll(); });
+}
+boot();
+</script>
+
+</body></html>
